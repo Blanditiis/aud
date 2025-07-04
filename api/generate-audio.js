@@ -8,11 +8,10 @@ module.exports = async (req, res) => {
             return res.status(400).json({ message: 'Texto e ID da voz são obrigatórios.' });
         }
 
-        const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+        const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?allow_unauthenticated=1`;
         const headers = {
             'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json',
-            'xi-api-key': process.env.ELEVENLABS_API_KEY // A chave da API deve ser definida como uma variável de ambiente na Vercel
+            'Content-Type': 'application/json'
         };
 
         const data = {
@@ -35,9 +34,15 @@ module.exports = async (req, res) => {
             });
 
             if (!response.ok) {
-                const errorText = await response.text();
-                console.error('Eleven Labs API Error:', errorText);
-                return res.status(response.status).json({ message: `Erro da API Eleven Labs: ${response.statusText}`, details: errorText });
+                const errorResponse = await response.text(); // Get raw response
+                console.error('Eleven Labs API Error Status:', response.status);
+                console.error('Eleven Labs API Raw Error Response:', errorResponse);
+                try {
+                    const errorJson = JSON.parse(errorResponse);
+                    return res.status(response.status).json({ message: `Erro da API Eleven Labs: ${response.statusText}`, details: errorJson });
+                } catch (parseError) {
+                    return res.status(response.status).json({ message: `Erro da API Eleven Labs: ${response.statusText}`, details: errorResponse });
+                }
             }
 
             const audioBuffer = await response.buffer();

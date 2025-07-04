@@ -222,8 +222,15 @@
                     });
 
                     if (!response.ok) {
-                        const errorData = await response.json();
-                        throw new Error(errorData.message || `Erro HTTP: ${response.status}`);
+                        let errorContent;
+                        try {
+                            errorContent = await response.json();
+                        } catch (e) {
+                            // If response is not JSON, get it as text
+                            errorContent = { message: await response.text() };
+                        }
+                        const errorMessage = errorContent.message || `Erro HTTP: ${response.status}`;
+                        throw new Error(errorMessage);
                     }
 
                     const blob = await response.blob();
