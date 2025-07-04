@@ -1,59 +1,60 @@
-const fetch = require('node-fetch');
+export default async function handler(req, res) {
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Método não permitido' });
+    }
 
-module.exports = async (req, res) => {
-    if (req.method === 'POST') {
-        const { text, voiceId, velocidade, estilo, estabilidade, similaridade, speakerBoost } = req.body;
+    try {
+        const { text, voiceId, speed, style, stability, similarityBoost, useSpeakerBoost } = req.body;
 
         if (!text || !voiceId) {
-            return res.status(400).json({ message: 'Texto e ID da voz são obrigatórios.' });
+            return res.status(400).json({ error: 'Texto e ID da voz são obrigatórios' });
         }
 
         const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}?allow_unauthenticated=1`;
-        const headers = {
-            'Accept': 'audio/mpeg',
-            'Content-Type': 'application/json'
+
+        const voiceSettings = {
+            speed: speed || 1.1,
+            style: style || 0.5,
+            stability: stability || 0.5,
+            similarity_boost: similarityBoost || 0.75,
+            use_speaker_boost: useSpeakerBoost !== undefined ? useSpeakerBoost : true
         };
 
-        const data = {
+        const requestData = {
             text: text,
             model_id: "eleven_multilingual_v2",
-            voice_settings: {
-                speed: velocidade,
-                style: estilo,
-                stability: estabilidade,
-                similarity_boost: similaridade,
-                use_speaker_boost: speakerBoost
-            }
+            voice_settings: voiceSettings
         };
 
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify(data)
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Erro na API:', response.status, errorText);
+            return res.status(response.status).json({ 
+                error: `Erro na API: ${response.status}`,
+                details: errorText
             });
-
-            if (!response.ok) {
-                const errorResponse = await response.text(); // Get raw response
-                console.error('Eleven Labs API Error Status:', response.status);
-                console.error('Eleven Labs API Raw Error Response:', errorResponse);
-                try {
-                    const errorJson = JSON.parse(errorResponse);
-                    return res.status(response.status).json({ message: `Erro da API Eleven Labs: ${response.statusText}`, details: errorJson });
-                } catch (parseError) {
-                    return res.status(response.status).json({ message: `Erro da API Eleven Labs: ${response.statusText}`, details: errorResponse });
-                }
-            }
-
-            const audioBuffer = await response.buffer();
-            res.setHeader('Content-Type', 'audio/mpeg');
-            res.status(200).send(audioBuffer);
-
-        } catch (error) {
-            console.error('Erro na requisição para Eleven Labs:', error);
-            res.status(500).json({ message: 'Erro interno do servidor ao gerar áudio.', details: error.message });
         }
-    } else {
-        res.status(405).json({ message: 'Método não permitido.' });
+
+        const audioBuffer = await response.arrayBuffer();
+        
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Content-Disposition', 'attachment; filename="audio.mp3"');
+        
+        return res.send(Buffer.from(audioBuffer));
+
+    } catch (error) {
+        console.error('Erro interno:', error);
+        return res.status(500).json({ 
+            error: 'Erro interno do servidor',
+            details: error.message
+        });
     }
-};
+}

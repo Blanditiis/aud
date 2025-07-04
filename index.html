@@ -3,256 +3,291 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Texto para Voz</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f4f4f4;
+        * {
             margin: 0;
-            padding: 20px;
+            padding: 0;
             box-sizing: border-box;
         }
-        .container {
-            background-color: #fff;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 600px;
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            margin: 0;
+            padding: 20px;
         }
+
+        .container {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 30px;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
         h1 {
             text-align: center;
             color: #333;
             margin-bottom: 25px;
+            font-size: 1.8em;
+            font-weight: normal;
         }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
         label {
             display: block;
             margin-bottom: 8px;
             color: #555;
-            font-weight: bold;
+            font-weight: 500;
         }
-        textarea, input[type="text"], input[type="range"] {
+
+        input, textarea {
             width: 100%;
-            padding: 10px;
-            margin-bottom: 20px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
+            padding: 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
             font-size: 16px;
+            transition: border-color 0.3s ease;
         }
-        input[type="range"] {
-            padding: 0;
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #007cba;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+        }
+
+        .slider-group {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        .slider-container {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .slider {
             margin-top: 10px;
         }
-        .slider-label {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 5px;
-            font-size: 0.9em;
-            color: #666;
+
+        .slider-value {
+            text-align: center;
+            font-weight: bold;
+            color: #007cba;
+            margin-top: 5px;
         }
+
+        .checkbox-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: auto;
+        }
+
         button {
             width: 100%;
             padding: 12px;
-            background-color: #007bff;
+            background: #007cba;
             color: white;
             border: none;
             border-radius: 4px;
-            font-size: 18px;
+            font-size: 16px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
         }
+
         button:hover {
-            background-color: #0056b3;
+            background: #005a87;
         }
-        #audioPlayer {
-            width: 100%;
-            margin-top: 25px;
-            display: none; /* Hidden by default */
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
         }
-        .message {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 4px;
+
+        .loading {
             display: none;
+            text-align: center;
+            margin-top: 20px;
+            color: #007cba;
         }
-        .message.error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+
+        .result {
+            margin-top: 30px;
+            text-align: center;
         }
-        .message.success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+
+        audio {
+            width: 100%;
+            margin-top: 20px;
+        }
+
+        .error {
+            color: #e74c3c;
+            background: #fdf2f2;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .slider-group {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                padding: 20px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <form id="ttsForm">
-            <label for="texto">Texto:</label>
-            <textarea id="texto" rows="8" placeholder="Digite o texto aqui..."></textarea>
-
-            <label for="voiceId">ID da Voz:</label>
-            <input type="text" id="voiceId" value="id_voice" placeholder="Ex: gfwthgfhdhg">
-
-            <label for="fileName">Nome do Arquivo (sem extensão):</label>
-            <input type="text" id="fileName" value="audio_name">
-
-            <label for="velocidade">Velocidade:</label>
-            <div class="slider-label">
-                <span>0.5</span>
-                <span><span id="velocidadeValue">1.1</span>x</span>
-                <span>2.0</span>
+        
+        <form id="audioForm">
+            <div class="form-group">
+                <label for="text">Texto:</label>
+                <textarea id="text" placeholder="Digite o texto..." required></textarea>
             </div>
-            <input type="range" id="velocidade" min="0.5" max="2.0" step="0.1" value="1.1">
 
-            <label for="estilo">Estilo:</label>
-            <div class="slider-label">
-                <span>0.0</span>
-                <span><span id="estiloValue">0.5</span></span>
-                <span>1.0</span>
+            <div class="form-group">
+                <label for="voiceId">ID da Voz:</label>
+                <input type="text" id="voiceId" placeholder="Digite o ID da voz" required>
             </div>
-            <input type="range" id="estilo" min="0.0" max="1.0" step="0.1" value="0.5">
 
-            <label for="estabilidade">Estabilidade:</label>
-            <div class="slider-label">
-                <span>0.0</span>
-                <span><span id="estabilidadeValue">0.5</span></span>
-                <span>1.0</span>
+            <div class="form-group">
+                <label for="filename">Nome do Arquivo:</label>
+                <input type="text" id="filename" value="audio" required>
             </div>
-            <input type="range" id="estabilidade" min="0.0" max="1.0" step="0.1" value="0.5">
 
-            <label for="similaridade">Impulso de Similaridade:</label>
-            <div class="slider-label">
-                <span>0.0</span>
-                <span><span id="similaridadeValue">0.75</span></span>
-                <span>1.0</span>
+            <div class="slider-group">
+                <div class="slider-container">
+                    <label for="speed">Velocidade:</label>
+                    <input type="range" id="speed" class="slider" min="0.5" max="2.0" step="0.1" value="1.1">
+                    <div class="slider-value" id="speedValue">1.1</div>
+                </div>
+
+                <div class="slider-container">
+                    <label for="style">Estilo:</label>
+                    <input type="range" id="style" class="slider" min="0.0" max="1.0" step="0.1" value="0.5">
+                    <div class="slider-value" id="styleValue">0.5</div>
+                </div>
+
+                <div class="slider-container">
+                    <label for="stability">Estabilidade:</label>
+                    <input type="range" id="stability" class="slider" min="0.0" max="1.0" step="0.1" value="0.5">
+                    <div class="slider-value" id="stabilityValue">0.5</div>
+                </div>
+
+                <div class="slider-container">
+                    <label for="similarityBoost">Impulso de Similaridade:</label>
+                    <input type="range" id="similarityBoost" class="slider" min="0.0" max="1.0" step="0.1" value="0.75">
+                    <div class="slider-value" id="similarityBoostValue">0.75</div>
+                </div>
             </div>
-            <input type="range" id="similaridade" min="0.0" max="1.0" step="0.1" value="0.75">
 
-            <label for="speakerBoost">Usar Impulso de Locutor:</label>
-            <input type="checkbox" id="speakerBoost" checked>
+            <div class="form-group">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="useSpeakerBoost" checked>
+                    <label for="useSpeakerBoost">Usar Impulso de Locutor</label>
+                </div>
+            </div>
 
-            <button type="submit">Gerar Áudio</button>
+            <button type="submit">Gerar</button>
         </form>
-        <div id="message" class="message"></div>
-        <audio id="audioPlayer" controls></audio>
+
+        <div class="loading" id="loading">
+            <p>Processando...</p>
+        </div>
+
+        <div class="result" id="result"></div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('ttsForm');
-            const textoInput = document.getElementById('texto');
-            const voiceIdInput = document.getElementById('voiceId');
-            const fileNameInput = document.getElementById('fileName');
-            const velocidadeInput = document.getElementById('velocidade');
-            const estiloInput = document.getElementById('estilo');
-            const estabilidadeInput = document.getElementById('estabilidade');
-            const similaridadeInput = document.getElementById('similaridade');
-            const speakerBoostInput = document.getElementById('speakerBoost');
-            const audioPlayer = document.getElementById('audioPlayer');
-            const messageDiv = document.getElementById('message');
+        // Atualizar valores dos sliders
+        document.querySelectorAll('.slider').forEach(slider => {
+            const valueDisplay = document.getElementById(slider.id + 'Value');
+            slider.addEventListener('input', () => {
+                valueDisplay.textContent = slider.value;
+            });
+        });
 
-            const velocidadeValueSpan = document.getElementById('velocidadeValue');
-            const estiloValueSpan = document.getElementById('estiloValue');
-            const estabilidadeValueSpan = document.getElementById('estabilidadeValue');
-            const similaridadeValueSpan = document.getElementById('similaridadeValue');
-
-            velocidadeInput.addEventListener('input', () => {
-                velocidadeValueSpan.textContent = velocidadeInput.value;
-            });
-            estiloInput.addEventListener('input', () => {
-                estiloValueSpan.textContent = estiloInput.value;
-            });
-            estabilidadeInput.addEventListener('input', () => {
-                estabilidadeValueSpan.textContent = estabilidadeInput.value;
-            });
-            similaridadeInput.addEventListener('input', () => {
-                similaridadeValueSpan.textContent = similaridadeInput.value;
-            });
-
-            function showMessage(msg, type) {
-                messageDiv.textContent = msg;
-                messageDiv.className = `message ${type}`;
-                messageDiv.style.display = 'block';
+        // Manipular envio do formulário
+        document.getElementById('audioForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const loading = document.getElementById('loading');
+            const result = document.getElementById('result');
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
+            // Mostrar loading
+            loading.style.display = 'block';
+            result.innerHTML = '';
+            submitButton.disabled = true;
+            
+            try {
+                const formData = {
+                    text: document.getElementById('text').value,
+                    voiceId: document.getElementById('voiceId').value,
+                    filename: document.getElementById('filename').value,
+                    speed: parseFloat(document.getElementById('speed').value),
+                    style: parseFloat(document.getElementById('style').value),
+                    stability: parseFloat(document.getElementById('stability').value),
+                    similarityBoost: parseFloat(document.getElementById('similarityBoost').value),
+                    useSpeakerBoost: document.getElementById('useSpeakerBoost').checked
+                };
+                
+                const response = await fetch('/api/generate-audio', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Erro: ${response.status}`);
+                }
+                
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+                
+                result.innerHTML = `
+                    <h3>Concluído!</h3>
+                    <audio controls>
+                        <source src="${audioUrl}" type="audio/mpeg">
+                        Seu navegador não suporta reprodução.
+                    </audio>
+                    <br><br>
+                    <a href="${audioUrl}" download="${formData.filename}.mp3" style="
+                        display: inline-block;
+                        padding: 8px 16px;
+                        background: #007cba;
+                        color: white;
+                        text-decoration: none;
+                        border-radius: 4px;
+                        margin-top: 10px;
+                    ">Baixar</a>
+                `;
+                
+            } catch (error) {
+                result.innerHTML = `<div class="error">Erro: ${error.message}</div>`;
+            } finally {
+                loading.style.display = 'none';
+                submitButton.disabled = false;
             }
-
-            form.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                messageDiv.style.display = 'none';
-                audioPlayer.style.display = 'none';
-                audioPlayer.removeAttribute('src');
-
-                const texto = textoInput.value.trim();
-                const voiceId = voiceIdInput.value.trim();
-                const fileName = fileNameInput.value.trim();
-                const velocidade = parseFloat(velocidadeInput.value);
-                const estilo = parseFloat(estiloInput.value);
-                const estabilidade = parseFloat(estabilidadeInput.value);
-                const similaridade = parseFloat(similaridadeInput.value);
-                const speakerBoost = speakerBoostInput.checked;
-
-                if (!texto || !voiceId || !fileName) {
-                    showMessage('Por favor, preencha todos os campos obrigatórios.', 'error');
-                    return;
-                }
-
-                try {
-                    const response = await fetch('/api/generate-audio', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            text: texto,
-                            voiceId: voiceId,
-                            fileName: fileName,
-                            velocidade: velocidade,
-                            estilo: estilo,
-                            estabilidade: estabilidade,
-                            similaridade: similaridade,
-                            speakerBoost: speakerBoost
-                        }),
-                    });
-
-                    if (!response.ok) {
-                        let errorContent;
-                        try {
-                            errorContent = await response.json();
-                        } catch (e) {
-                            // If response is not JSON, get it as text
-                            errorContent = { message: await response.text() };
-                        }
-                        const errorMessage = errorContent.message || `Erro HTTP: ${response.status}`;
-                        throw new Error(errorMessage);
-                    }
-
-                    const blob = await response.blob();
-                    const audioUrl = URL.createObjectURL(blob);
-                    audioPlayer.src = audioUrl;
-                    audioPlayer.style.display = 'block';
-                    audioPlayer.play();
-                    showMessage('Áudio gerado com sucesso!', 'success');
-
-                    // Create a temporary link to download the audio
-                    const a = document.createElement('a');
-                    a.href = audioUrl;
-                    a.download = `${fileName}.mp3`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-
-                } catch (error) {
-                    console.error('Erro ao gerar áudio:', error);
-                    showMessage(`Erro ao gerar áudio: ${error.message}`, 'error');
-                }
-            });
         });
     </script>
 </body>
